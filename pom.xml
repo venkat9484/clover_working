@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.jenkins-ci.plugins</groupId>
+    <artifactId>plugin</artifactId>
+    <version>4.25</version>
+    <relativePath />
+  </parent>
+
+  <groupId>org.jvnet.hudson.plugins</groupId>
+  <artifactId>platformlabeler</artifactId>
+  <version>${changelist}</version>
+  <packaging>hpi</packaging>
+
+  <name>Jenkins Platform Labeler Plugin</name>
+  <description>Labels agents based on their operating system (platform) version and architecture</description>
+  <url>https://github.com/jenkinsci/platformlabeler-plugin/</url>
+  <inceptionYear>2009</inceptionYear>
+
+  <developers>
+    <developer>
+      <id>MarkEWaite</id>
+      <name>Mark Waite</name>
+      <email>mark.earl.waite@gmail.com</email>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/jenkinsci/platformlabeler-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/platformlabeler-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/platformlabeler-plugin</url>
+    <tag>${scmTag}</tag>
+  </scm>
+
+  <properties>
+    <changelist>999999-SNAPSHOT</changelist>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
+    <jenkins.version>2.263.1</jenkins.version>
+    <java.level>8</java.level>
+    <linkXRef>false</linkXRef>
+    <!-- Plugin intentionally does not deliver javadoc. -->
+    <!-- No API's intended to be used, none should be called from outside. -->
+    <maven.javadoc.skip>true</maven.javadoc.skip>
+    <hpi.compatibleSinceVersion>5.0</hpi.compatibleSinceVersion>
+    <junit.jupiter.version>5.8.0</junit.jupiter.version>
+    <slf4jVersion>1.7.26</slf4jVersion>
+    <spotbugs.effort>Max</spotbugs.effort>
+    <spotbugs.failOnError>true</spotbugs.failOnError>
+    <spotbugs.threshold>Low</spotbugs.threshold>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jenkins.tools.bom</groupId>
+        <artifactId>bom-2.263.x</artifactId>
+        <version>950.v396cb834de1e</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <!-- https://mvnrepository.com/artifact/org.reflections/reflections -->
+    <dependency>
+      <groupId>org.reflections</groupId>
+      <artifactId>reflections</artifactId>
+      <version>0.9.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.spotbugs</groupId>
+      <artifactId>spotbugs-annotations</artifactId>
+      <version>4.4.1</version>
+      <exclusions>
+        <exclusion><!-- prevent transitive inclusion of jsr305 -->
+          <groupId>com.google.code.findbugs</groupId>
+          <artifactId>jsr305</artifactId>
+        </exclusion>
+      </exclusions>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion><!-- Hamcrest 2.x bundles all hamcrest-core functionality in the hamcrest artifact -->
+          <groupId>org.hamcrest</groupId>
+          <artifactId>hamcrest-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <version>2.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.vintage</groupId>
+      <artifactId>junit-vintage-engine</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit.jupiter.version}</version>
+      <type>jar</type>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <build>
+    <plugins>
+      <!-- Fail build on pom formatting errors -->
+      <!-- Fix with mvn tidy:pom -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>tidy-maven-plugin</artifactId>
+        <version>1.1.0</version>
+        <executions>
+          <execution>
+            <id>validate</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- git code format maven plugin -->
+      <plugin>
+	<groupId>com.cosium.code</groupId>
+	<artifactId>git-code-format-maven-plugin</artifactId>
+	<version>2.7</version>
+	<executions>
+	  <!-- On commit, format the modified java files -->
+	  <execution>
+	    <id>install-formatter-hook</id>
+	    <goals>
+	      <goal>install-hooks</goal>
+	    </goals>
+	  </execution>
+	  <!-- On Maven verify phase, fail if any file
+	  (including unmodified) is badly formatted -->
+	  <execution>
+	    <id>validate-code-format</id>
+	    <goals>
+	      <goal>validate-code-format</goal>
+	    </goals>
+	  </execution>
+	</executions>
+	<configuration>
+	  <googleJavaFormatOptions>
+	    <aosp>true</aosp>
+	  </googleJavaFormatOptions>
+	</configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.1.2</version>
+        <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>9.0</version>
+            </dependency>
+          </dependencies>
+        <configuration>
+          <configLocation>google_checks.xml</configLocation>
+          <failOnViolation>true</failOnViolation>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgument>-Xlint:deprecation</compilerArgument>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.4.1</version>
+        <configuration>
+          <plugins>
+            <plugin>
+              <groupId>com.h3xstream.findsecbugs</groupId>
+              <artifactId>findsecbugs-plugin</artifactId>
+              <version>1.11.0</version>
+            </plugin>
+          </plugins>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs</artifactId>
+            <version>4.4.1</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+    </plugins>
+  </build>
+</project>
